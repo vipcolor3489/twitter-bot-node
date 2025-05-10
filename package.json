@@ -1,0 +1,13 @@
+{
+  "name": "twitter-bot",
+  "version": "1.0.0",
+  "description": "Twitter監視Bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "twitter-api-v2": "^1.10.0",
+    "axios": "^1.3.0"
+  }
+}
