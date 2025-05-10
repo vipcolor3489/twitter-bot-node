@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { TwitterApi } = require('twitter-api-v2');
 const axios = require('axios');
+const http = require('http'); // Railway用に追加
 
 // Twitter APIクライアントの初期化
 const client = new TwitterApi({
@@ -13,7 +14,7 @@ const client = new TwitterApi({
 const listId = process.env.LIST_ID;
 const iftttWebhookUrl = process.env.IFTTT_WEBHOOK_URL;
 
-// ✅ 条件にしたいキーワード（複数指定可能）
+// 条件にしたいキーワード
 const keywords = ['【要人発言】', '市場概況】', '【経済指標速報】', '【指標】', '【指標発表予定】'];
 
 let lastTweetId = null;
@@ -33,7 +34,6 @@ async function fetchAndNotify() {
       if (tweet.id !== lastTweetId) {
         const text = tweet.text;
 
-        // ✅ キーワードが含まれるかをチェック（部分一致）
         const match = keywords.some(keyword => text.includes(keyword));
 
         if (match) {
@@ -55,4 +55,14 @@ async function fetchAndNotify() {
   }
 }
 
+// 10秒ごとに監視
 setInterval(fetchAndNotify, 10000);
+
+// 🚀 Railway維持のためのダミーHTTPサーバー起動
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  res.writeHead(200, {'Content-Type': 'text/plain'});
+  res.end('Bot is running\n');
+}).listen(PORT, () => {
+  console.log(`Listening on port ${PORT}`);
+});
