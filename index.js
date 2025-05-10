@@ -56,7 +56,7 @@ async function fetchAndNotify() {
 }
 
 // 10秒ごとに監視
-setInterval(fetchAndNotify, 60000);
+setInterval(fetchAndNotify, 65000);
 
 // 🚀 Railway維持のためのダミーHTTPサーバー起動
 const PORT = process.env.PORT || 3000;
