@@ -2,8 +2,12 @@ require('dotenv').config();
 const { TwitterApi } = require('twitter-api-v2');
 const axios = require('axios');
 
-const twitterClient = new TwitterApi(process.env.TWITTER_BEARER_TOKEN);
-const userClient = twitterClient.readOnly;
+const twitterClient = new TwitterApi({
+  appKey: process.env.TWITTER_API_KEY,
+  appSecret: process.env.TWITTER_API_SECRET,
+  accessToken: process.env.TWITTER_ACCESS_TOKEN,
+  accessSecret: process.env.TWITTER_ACCESS_SECRET,
+});
 
 userClient.v2.me() // ユーザー情報を取得
   .then(response => {
