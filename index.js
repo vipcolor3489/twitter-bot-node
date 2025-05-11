@@ -29,9 +29,11 @@ const checkTweets = async () => {
     }
   } catch (err) {
     if (err.code === 429 || err?.data?.title === 'Too Many Requests') {
-      const resetUnix = err.rateLimit?.reset; // ← ここがポイント
+      const resetUnix = err.rateLimit?.reset;
       const resetTime = resetUnix
-        ? new Date(resetUnix * 1000).toISOString().slice(11, 16) + ' UTC'
+        ? new Date(resetUnix * 1000 + 9 * 60 * 60 * 1000) // JSTへ変換
+            .toISOString()
+            .slice(11, 16) + ' JST'
         : '不明';
 
       await axios.post(discordWebhook, {
