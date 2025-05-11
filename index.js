@@ -21,7 +21,8 @@ const checkTweets = async () => {
 
   try {
     const query = keywords.map(k => `"${k.trim()}"`).join(' OR ');
-    console.log('🔍 Twitter検索クエリ:', query);
+    const encodedQuery = encodeURIComponent(query);
+    console.log("Twitter API リクエスト URL:", url);
     const res = await userClient.v2.search(query, {
       'tweet.fields': 'created_at',
       max_results: 5,
