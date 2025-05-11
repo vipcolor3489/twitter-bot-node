@@ -63,3 +63,17 @@ const checkTweets = async () => {
 
 setInterval(checkTweets, 30000); // 30秒間隔でチェック
 console.log('✅ Twitter to Discord bot is running...');
+
+// ポートリッスン（Render の Web Service に必要）
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.send('Bot is running!');
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 Listening on port ${PORT}`);
+});
+
