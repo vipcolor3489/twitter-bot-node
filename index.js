@@ -25,7 +25,7 @@ const checkTweets = async () => {
   if (now < pauseUntil) return;
 
   try {
-    const res = await twitterClient.v2.listTweets(listId, {
+    const res = await twitterClient.v2.listTimeline(listId, {
       max_results: 5,
       since_id: lastTweetId,
     });
