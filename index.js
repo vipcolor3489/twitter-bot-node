@@ -28,28 +28,60 @@ const checkTweets = async () => {
     // リクエストパラメータを準備
     const requestParams = {
       max_results: 5,
-      // 必要に応じて他のパラメータも追加できます
-      // 例: "tweet.fields": "created_at,author_id"
+      "tweet.fields": "created_at,text", 
+      "expansions": "author_id",
+      "user.fields": "name,username"
     };
 
-    // lastTweetId が存在する場合のみ since_id をパラメータに追加
     if (lastTweetId) {
       requestParams.since_id = lastTweetId;
     }
 
     const res = await twitterClient.v2.listTweets(listId, requestParams);
 
-    const tweets = res.data?.data;
+    const tweets = res.data;
+    const usersData = res.includes?.users;
+
     if (!tweets || tweets.length === 0) return;
 
-    const orderedTweets = tweets.reverse(); // 古い順に処理
+    const userMap = new Map();
+    if (usersData) {
+      for (const user of usersData) {
+        userMap.set(user.id, user);
+      }
+    }
+
+    const orderedTweets = tweets.reverse(); 
 
     for (const tweet of orderedTweets) {
-      const text = tweet.text || '';
-      const isMatch = keywords.some(keyword => text.includes(keyword));
+      const textContent = tweet.text || '';
+      const isMatch = keywords.some(keyword => textContent.includes(keyword));
+
       if (isMatch) {
-        const url = `https://twitter.com/i/web/status/${tweet.id}`;
-        await axios.post(discordWebhook, { content: `🔔 ${url}` });
+        const author = userMap.get(tweet.author_id);
+        const displayName = author ? author.name : '不明なユーザー';
+        const userName = author ? `@${author.username}` : '';
+
+        let formattedDate = '不明な日時';
+        if (tweet.created_at) {
+          const postDate = new Date(tweet.created_at);
+          formattedDate = postDate.toLocaleString('ja-JP', {
+            timeZone: 'Asia/Tokyo',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        }
+
+        // Discordに投稿するメッセージを作成 (装飾とリンクを削除)
+        const discordMessage =
+`${displayName} (${userName})
+${textContent}
+投稿日時: ${formattedDate}`;
+
+        await axios.post(discordWebhook, { content: discordMessage });
         lastTweetId = tweet.id;
       }
     }
@@ -60,30 +92,36 @@ const checkTweets = async () => {
         ? new Date(resetUnix * 1000 + 9 * 60 * 60 * 1000).toISOString().slice(11, 16) + ' JST'
         : '不明';
 
-      await axios.post(discordWebhook, {
-        content: `⚠️ Twitter APIレート制限中（${resetTime}まで）`,
-      });
-
+      try {
+        await axios.post(discordWebhook, {
+          content: `⚠️ Twitter APIレート制限中です。処理は ${resetTime} まで休止します。`,
+        });
+      } catch (discordErr) {
+        console.error('❌ Discordへのレート制限通知に失敗しました:', discordErr.message);
+      }
+      
       if (resetUnix) {
-        pauseUntil = (resetUnix + 60) * 1000; // 1分余裕をもって休止
-        console.log(`⏸️ 処理を ${(new Date(pauseUntil)).toLocaleTimeString('ja-JP')} まで休止`);
+        pauseUntil = (resetUnix + 60) * 1000; 
+        console.log(`⏸️ 処理を ${(new Date(pauseUntil)).toLocaleTimeString('ja-JP')} まで休止します。`);
+      } else {
+        pauseUntil = Date.now() + (15 * 60 * 1000);
+        console.log(`⏸️ リセット時刻不明のため、処理を15分間休止します。`);
       }
     } else {
       console.error('❌ Error checking tweets:', err.message);
-      // より詳細なエラー情報を確認したい場合は、前回の回答で提案したように
-      // err.data の内容をコンソールに出力するコードをここに追加してください。
-      // if (err.data) {
-      //   console.error('Twitter API Error Data:', JSON.stringify(err.data, null, 2));
-      // }
+      if (err.data) {
+        console.error('Twitter API Error Data:', JSON.stringify(err.data, null, 2));
+      }
     }
   }
 };
 
-// 定期実行
-setInterval(checkTweets, 30 * 1000);
-console.log('✅ Twitter to Discord bot is running...');
+// 定期実行（15分30秒ごと）
+const intervalTime = (15 * 60 + 30) * 1000; 
+setInterval(checkTweets, intervalTime);
+console.log(`✅ Twitter to Discord bot is running... Interval: ${intervalTime / 1000 / 60} minutes.`);
 
-// Web サーバー起動（Render対応）
+// Web サーバー起動
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.get('/', (req, res) => {
