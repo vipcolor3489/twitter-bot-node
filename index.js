@@ -20,7 +20,7 @@ const checkTweets = async () => {
   }
 
   try {
-    const query = keywords.map(k => k.trim()).join(' OR ');
+    const query = keywords.map(k => `"${k.trim()}"`).join(' OR ');
     console.log('🔍 Twitter検索クエリ:', query);
     const res = await userClient.v2.search(query, {
       'tweet.fields': 'created_at',
