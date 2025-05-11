@@ -42,12 +42,16 @@ const checkTweets = async () => {
 
     const res = await twitterClient.v2.listTweets(listId, requestParams);
 
-    const tweets = res.data;
+    const potentialTweetsArray = res.data; // APIからのレスポンスの data プロパティ
     const usersData = res.includes?.users;
 
-    if (!tweets || tweets.length === 0) {
+    // potentialTweetsArray が配列であり、かつ要素が存在する場合のみ後続の処理を行う
+    if (!Array.isArray(potentialTweetsArray) || potentialTweetsArray.length === 0) {
       console.log('📝 新しいポストはありませんでした。');
     } else {
+      // この時点で potentialTweetsArray は空ではない配列であることが保証される
+      const tweets = potentialTweetsArray; 
+      
       const userMap = new Map();
       if (usersData) {
         for (const user of usersData) {
@@ -55,7 +59,7 @@ const checkTweets = async () => {
         }
       }
 
-      const orderedTweets = tweets.reverse(); 
+      const orderedTweets = tweets.reverse(); // tweets は配列なので .reverse() が安全に使える
 
       let newTweetsFound = 0;
       for (const tweet of orderedTweets) {
@@ -89,15 +93,15 @@ ${textContent}
           await axios.post(discordWebhook, { content: discordMessage });
           console.log(`🔔 Discordへ通知: ${displayName} のポスト`);
         }
-        lastTweetId = tweet.id; // マッチしなくても最後に処理したツイートIDは更新
+        lastTweetId = tweet.id; 
       }
+
       if (newTweetsFound > 0) {
         console.log(`✨ ${newTweetsFound}件の新しいポストを処理しました。`);
       } else {
         console.log('📝 キーワードに合致する新しいポストはありませんでした。');
       }
     }
-    // すべての処理が正常に完了した場合のログ
     console.log(`✅ ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })} - ポストのチェックが正常に完了`);
 
   } catch (err) {
@@ -119,12 +123,15 @@ ${textContent}
         pauseUntil = (resetUnix + 60) * 1000; 
         console.log(`⏸️ 処理を ${(new Date(pauseUntil)).toLocaleTimeString('ja-JP')} まで休止します。`);
       } else {
-        pauseUntil = Date.now() + (15 * 60 * 1000); // レートリミットの標準的な期間で休止
+        pauseUntil = Date.now() + (15 * 60 * 1000);
         console.log(`⏸️ リセット時刻不明のため、処理を15分間休止します。`);
       }
     } else {
       console.error(`❌ ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })} - Error checking tweets:`, err.message);
-      if (err.data) {
+      if (err.stack) { // エラーのスタックトレースを出力
+        console.error(err.stack);
+      }
+      if (err.data) { // APIからのエラーレスポンス詳細
         console.error('Twitter API Error Data:', JSON.stringify(err.data, null, 2));
       }
     }
@@ -132,7 +139,7 @@ ${textContent}
 };
 
 // 定期実行（15分30秒ごと）
-const intervalTime = (15 * 60 + 30) * 1000; 
+const intervalTime = (10 * 60 + 30) * 1000; 
 setInterval(checkTweets, intervalTime);
 
 // 起動時にも一度チェックを実行 (任意)
