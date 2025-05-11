@@ -9,7 +9,7 @@ const twitterClient = new TwitterApi({
   accessSecret: process.env.TWITTER_ACCESS_SECRET,
 });
 
-userClient.v2.me() // ユーザー情報を取得
+twitterClient.v2.me() // ユーザー情報を取得
   .then(response => {
     console.log('User info:', response.data);
   })
