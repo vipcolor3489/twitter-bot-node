@@ -29,13 +29,13 @@ const checkTweets = async () => {
     }
   } catch (err) {
     if (err.code === 429 || err?.data?.title === 'Too Many Requests') {
-      const resetTimestamp = err.headers?.get('x-rate-limit-reset');
-      const resetTime = resetTimestamp
-        ? new Date(Number(resetTimestamp) * 1000).toISOString().slice(11, 16)
+      const resetUnix = err.rateLimit?.reset; // ← ここがポイント
+      const resetTime = resetUnix
+        ? new Date(resetUnix * 1000).toISOString().slice(11, 16) + ' UTC'
         : '不明';
 
       await axios.post(discordWebhook, {
-        content: `⚠️ Twitter APIレート制限中（${resetTime} UTC まで）`,
+        content: `⚠️ Twitter APIレート制限中（${resetTime}まで）`,
       });
     } else {
       console.error('❌ Error checking tweets:', err.message);
