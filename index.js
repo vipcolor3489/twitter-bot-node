@@ -93,6 +93,16 @@ ${textContent}
   }
 }
 
+const express = require('express'); // この行のコメントアウトも解除
+const app = express(); 
+const PORT = process.env.PORT || 3000; 
+app.get('/', (req, res) => { 
+  res.send('Bot is running!'); 
+}); 
+app.listen(PORT, () => { 
+  console.log(`🌐 Listening on port ${PORT}`); 
+});
+
 // --- 定期実行の設定 ---
 const intervalTime = (15 * 60 + 30) * 1000; // 15分30秒
 
