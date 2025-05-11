@@ -20,7 +20,7 @@ const checkTweets = async () => {
     });
 
     if (res.data?.data?.length > 0) {
-      const tweets = res.data.data.reverse(); // 古い順に通知
+      const tweets = res.data.data.reverse();
       for (const tweet of tweets) {
         const url = `https://twitter.com/i/web/status/${tweet.id}`;
         await axios.post(discordWebhook, { content: `🔔 ${url}` });
@@ -28,9 +28,20 @@ const checkTweets = async () => {
       }
     }
   } catch (err) {
-    console.error('❌ Error checking tweets:', err.message);
+    if (err.code === 429 || err?.data?.title === 'Too Many Requests') {
+      const resetTimestamp = err.headers?.get('x-rate-limit-reset');
+      const resetTime = resetTimestamp
+        ? new Date(Number(resetTimestamp) * 1000).toISOString().slice(11, 16)
+        : '不明';
+
+      await axios.post(discordWebhook, {
+        content: `⚠️ Twitter APIレート制限中（${resetTime} UTC まで）`,
+      });
+    } else {
+      console.error('❌ Error checking tweets:', err.message);
+    }
   }
 };
 
-setInterval(checkTweets, 30000); // 30秒間隔でチェック
+setInterval(checkTweets, 30000);
 console.log('✅ Twitter to Discord bot is running...');
