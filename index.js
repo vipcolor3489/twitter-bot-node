@@ -5,6 +5,14 @@ const axios = require('axios');
 const twitterClient = new TwitterApi(process.env.TWITTER_BEARER_TOKEN);
 const userClient = twitterClient.readOnly;
 
+userClient.v2.me() // ユーザー情報を取得
+  .then(response => {
+    console.log('User info:', response.data);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });
+
 const keywords = process.env.TWITTER_KEYWORDS.split(',');
 const discordWebhook = process.env.DISCORD_WEBHOOK_URL;
 
