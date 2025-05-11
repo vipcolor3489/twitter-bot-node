@@ -15,7 +15,6 @@ const checkTweets = async () => {
     for (const keyword of keywords) {
       console.log(`Searching for tweets with keyword: ${keyword}`);
       
-      // APIリクエストの詳細をログに出力
       const searchParams = {
         'tweet.fields': 'created_at',
         max_results: 5,
@@ -36,8 +35,14 @@ const checkTweets = async () => {
     }
   } catch (err) {
     console.error('❌ Error checking tweets:', err.message);
+    // レートリミットに引っかかった場合は、一定時間待機して再試行
+    if (err.response && err.response.status === 429) {
+      console.log('Rate limit exceeded, waiting for a while...');
+      setTimeout(checkTweets, 60000); // 1分待機して再実行
+    }
   }
 };
 
-setInterval(checkTweets, 30000); // 30秒間隔でチェック
+setInterval(checkTweets, 60000); // 1分間隔でチェック
 console.log('✅ Twitter to Discord bot is running...');
+
