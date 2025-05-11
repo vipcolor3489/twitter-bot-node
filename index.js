@@ -12,18 +12,20 @@ let lastTweetId = null;
 
 const checkTweets = async () => {
   try {
-    const res = await userClient.v2.search(keyword, {
-      'tweet.fields': 'created_at',
-      max_results: 5,
-      since_id: lastTweetId,
-    });
+    for (const keyword of keywords) {
+      const res = await userClient.v2.search(keyword, {
+        'tweet.fields': 'created_at',
+        max_results: 5,
+        since_id: lastTweetId,
+      });
 
-    if (res.data?.data?.length > 0) {
-      const tweets = res.data.data.reverse(); // 古い順に
-      for (const tweet of tweets) {
-        const url = `https://twitter.com/i/web/status/${tweet.id}`;
-        await axios.post(discordWebhook, { content: `🔔 ${url}` });
-        lastTweetId = tweet.id;
+      if (res.data?.data?.length > 0) {
+        const tweets = res.data.data.reverse(); // 古い順に
+        for (const tweet of tweets) {
+          const url = `https://twitter.com/i/web/status/${tweet.id}`;
+          await axios.post(discordWebhook, { content: `🔔 ${url}` });
+          lastTweetId = tweet.id;
+        }
       }
     }
   } catch (err) {
