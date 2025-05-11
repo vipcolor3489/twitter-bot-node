@@ -22,10 +22,13 @@ let pauseUntil = 0;
 // ツイートをチェックしてDiscordへ通知
 const checkTweets = async () => {
   const now = Date.now();
-  if (now < pauseUntil) return;
+  if (now < pauseUntil) {
+    // console.log(`🕒 処理休止中... ${new Date(pauseUntil).toLocaleTimeString('ja-JP')} まで`);
+    return;
+  }
+  console.log(`🔍 ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })} - ポストのチェックを開始...`);
 
   try {
-    // リクエストパラメータを準備
     const requestParams = {
       max_results: 5,
       "tweet.fields": "created_at,text", 
@@ -42,49 +45,61 @@ const checkTweets = async () => {
     const tweets = res.data;
     const usersData = res.includes?.users;
 
-    if (!tweets || tweets.length === 0) return;
-
-    const userMap = new Map();
-    if (usersData) {
-      for (const user of usersData) {
-        userMap.set(user.id, user);
-      }
-    }
-
-    const orderedTweets = tweets.reverse(); 
-
-    for (const tweet of orderedTweets) {
-      const textContent = tweet.text || '';
-      const isMatch = keywords.some(keyword => textContent.includes(keyword));
-
-      if (isMatch) {
-        const author = userMap.get(tweet.author_id);
-        const displayName = author ? author.name : '不明なユーザー';
-        const userName = author ? `@${author.username}` : '';
-
-        let formattedDate = '不明な日時';
-        if (tweet.created_at) {
-          const postDate = new Date(tweet.created_at);
-          formattedDate = postDate.toLocaleString('ja-JP', {
-            timeZone: 'Asia/Tokyo',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+    if (!tweets || tweets.length === 0) {
+      console.log('📝 新しいポストはありませんでした。');
+    } else {
+      const userMap = new Map();
+      if (usersData) {
+        for (const user of usersData) {
+          userMap.set(user.id, user);
         }
+      }
 
-        // Discordに投稿するメッセージを作成 (装飾とリンクを削除)
-        const discordMessage =
+      const orderedTweets = tweets.reverse(); 
+
+      let newTweetsFound = 0;
+      for (const tweet of orderedTweets) {
+        const textContent = tweet.text || '';
+        const isMatch = keywords.some(keyword => textContent.includes(keyword));
+
+        if (isMatch) {
+          newTweetsFound++;
+          const author = userMap.get(tweet.author_id);
+          const displayName = author ? author.name : '不明なユーザー';
+          const userName = author ? `@${author.username}` : '';
+
+          let formattedDate = '不明な日時';
+          if (tweet.created_at) {
+            const postDate = new Date(tweet.created_at);
+            formattedDate = postDate.toLocaleString('ja-JP', {
+              timeZone: 'Asia/Tokyo',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+          }
+
+          const discordMessage =
 `${displayName} (${userName})
 ${textContent}
 投稿日時: ${formattedDate}`;
 
-        await axios.post(discordWebhook, { content: discordMessage });
-        lastTweetId = tweet.id;
+          await axios.post(discordWebhook, { content: discordMessage });
+          console.log(`🔔 Discordへ通知: ${displayName} のポスト`);
+        }
+        lastTweetId = tweet.id; // マッチしなくても最後に処理したツイートIDは更新
+      }
+      if (newTweetsFound > 0) {
+        console.log(`✨ ${newTweetsFound}件の新しいポストを処理しました。`);
+      } else {
+        console.log('📝 キーワードに合致する新しいポストはありませんでした。');
       }
     }
+    // すべての処理が正常に完了した場合のログ
+    console.log(`✅ ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })} - ポストのチェックが正常に完了`);
+
   } catch (err) {
     if (err.code === 429 || err?.data?.title === 'Too Many Requests') {
       const resetUnix = err.rateLimit?.reset;
@@ -104,11 +119,11 @@ ${textContent}
         pauseUntil = (resetUnix + 60) * 1000; 
         console.log(`⏸️ 処理を ${(new Date(pauseUntil)).toLocaleTimeString('ja-JP')} まで休止します。`);
       } else {
-        pauseUntil = Date.now() + (15 * 60 * 1000);
+        pauseUntil = Date.now() + (15 * 60 * 1000); // レートリミットの標準的な期間で休止
         console.log(`⏸️ リセット時刻不明のため、処理を15分間休止します。`);
       }
     } else {
-      console.error('❌ Error checking tweets:', err.message);
+      console.error(`❌ ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })} - Error checking tweets:`, err.message);
       if (err.data) {
         console.error('Twitter API Error Data:', JSON.stringify(err.data, null, 2));
       }
@@ -119,7 +134,14 @@ ${textContent}
 // 定期実行（15分30秒ごと）
 const intervalTime = (15 * 60 + 30) * 1000; 
 setInterval(checkTweets, intervalTime);
+
+// 起動時にも一度チェックを実行 (任意)
+// console.log('🚀 初回ポストチェックを実行...');
+// checkTweets();
+
 console.log(`✅ Twitter to Discord bot is running... Interval: ${intervalTime / 1000 / 60} minutes.`);
+console.log(`🕒 Current JST time: ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}`);
+
 
 // Web サーバー起動
 const app = express();
