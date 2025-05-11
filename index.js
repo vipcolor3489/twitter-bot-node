@@ -35,7 +35,7 @@ const checkTweets = async () => {
     const query = keywords.map(k => `"${k.trim()}"`).join(' OR ');
     const encodedQuery = encodeURIComponent(query);
     console.log(`🔍 実行予定のTwitter API: https://api.twitter.com/2/tweets/search/recent?query=${encodedQuery}&max_results=5&tweet.fields=created_at${lastTweetId ? `&since_id=${lastTweetId}` : ''}`);
-    const res = await userClient.v2.search(query, {
+    const res = await twitterClient.v2.search(query, {
       'tweet.fields': 'created_at',
       max_results: 5,
       since_id: lastTweetId,
