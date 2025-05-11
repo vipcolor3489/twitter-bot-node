@@ -25,10 +25,19 @@ const checkTweets = async () => {
   if (now < pauseUntil) return;
 
   try {
-    const res = await twitterClient.v2.listTimeline(listId, {
+    // リクエストパラメータを準備
+    const requestParams = {
       max_results: 5,
-      since_id: lastTweetId,
-    });
+      // 必要に応じて他のパラメータも追加できます
+      // 例: "tweet.fields": "created_at,author_id"
+    };
+
+    // lastTweetId が存在する場合のみ since_id をパラメータに追加
+    if (lastTweetId) {
+      requestParams.since_id = lastTweetId;
+    }
+
+    const res = await twitterClient.v2.listTweets(listId, requestParams);
 
     const tweets = res.data?.data;
     if (!tweets || tweets.length === 0) return;
@@ -61,6 +70,11 @@ const checkTweets = async () => {
       }
     } else {
       console.error('❌ Error checking tweets:', err.message);
+      // より詳細なエラー情報を確認したい場合は、前回の回答で提案したように
+      // err.data の内容をコンソールに出力するコードをここに追加してください。
+      // if (err.data) {
+      //   console.error('Twitter API Error Data:', JSON.stringify(err.data, null, 2));
+      // }
     }
   }
 };
