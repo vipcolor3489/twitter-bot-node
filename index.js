@@ -17,8 +17,9 @@ twitterClient.v2.me() // ユーザー情報を取得
     console.error('Error:', error);
   });
 
-const keywords = process.env.TWITTER_KEYWORDS.split(',');
+const keywords = process.env.TWITTER_KEYWORDS.split(',');  // 複数のキーワードを指定
 const discordWebhook = process.env.DISCORD_WEBHOOK_URL;
+const listId = process.env.TWITTER_LIST_ID;  // リストIDを取得
 
 let lastTweetId = null;
 let pauseUntil = 0; // レート制限による休止中の終了時刻（ms単位）
@@ -32,21 +33,26 @@ const checkTweets = async () => {
   }
 
   try {
-    const query = keywords.map(k => `"${k.trim()}"`).join(' OR ');
-    const encodedQuery = encodeURIComponent(query);
-    console.log(`🔍 実行予定のTwitter API: https://api.twitter.com/2/tweets/search/recent?query=${encodedQuery}&max_results=5&tweet.fields=created_at${lastTweetId ? `&since_id=${lastTweetId}` : ''}`);
-    const res = await twitterClient.v2.search(query, {
+    // リスト内のツイートを取得
+    const res = await twitterClient.v2.listTweets(listId, {
       'tweet.fields': 'created_at',
       max_results: 5,
       since_id: lastTweetId,
     });
 
+    // ツイートの存在確認
     if (res.data?.data?.length > 0) {
       const tweets = res.data.data.reverse(); // 古い順に
-      for (const tweet of tweets) {
+      // キーワードにマッチするツイートのみをフィルタリング
+      const matchedTweets = tweets.filter(tweet =>
+        keywords.some(keyword => tweet.text.includes(keyword))
+      );
+
+      // マッチしたツイートをDiscordに通知
+      for (const tweet of matchedTweets) {
         const url = `https://twitter.com/i/web/status/${tweet.id}`;
         await axios.post(discordWebhook, { content: `🔔 ${url}` });
-        lastTweetId = tweet.id;
+        lastTweetId = tweet.id; // 最新のツイートIDを更新
       }
     }
   } catch (err) {
@@ -89,4 +95,3 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🌐 Listening on port ${PORT}`);
 });
-
