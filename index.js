@@ -13,11 +13,17 @@ let lastTweetId = null;
 const checkTweets = async () => {
   try {
     for (const keyword of keywords) {
-      const res = await userClient.v2.search(keyword, {
+      console.log(`Searching for tweets with keyword: ${keyword}`);
+      
+      // APIリクエストの詳細をログに出力
+      const searchParams = {
         'tweet.fields': 'created_at',
         max_results: 5,
-        since_id: lastTweetId,
-      });
+        since_id: lastTweetId || undefined, // 初回はnullを避ける
+      };
+      console.log('Search parameters:', searchParams);
+      
+      const res = await userClient.v2.search(keyword, searchParams);
 
       if (res.data?.data?.length > 0) {
         const tweets = res.data.data.reverse(); // 古い順に
